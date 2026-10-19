@@ -46,6 +46,7 @@ for (const [name, mutate, check] of [
   ['counter moves backwards', (c) => c.frames[90].roles.value.text = '0', 'never goes backwards'],
   ['duration changed', (c) => c.duration = 6.2, 'duration preserved'],
   ['duplicate role', (c) => c.frames[180].roles.value.dup = 2, 'roles are unique'],
+  ['missing role before the hold', (c) => delete c.frames[20].roles.source, 'roles are unique'],
 ]) test(name, () => {
   const ctx = fixture(); mutate(ctx.portrait);
   const result = revisionChecks(ctx, manifest);

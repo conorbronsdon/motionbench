@@ -23,7 +23,7 @@ export function revisionChecks(contexts, manifest) {
     checks.push({id: 'revision: required roles are unique',
       pass: ctx.frames.length > 0 && ctx.frames.every((f) =>
         [manifest.narration.value, ...manifest.narration.copy.map((c) => c.role)]
-          .every((name) => !f.roles[name]?.dup)), want: 'one tag per role'});
+          .every((name) => f.roles[name] != null && !f.roles[name].dup)), want: 'one tag per role'});
     return {format: format.id, pass: checks.every((c) => c.pass), checks};
   });
 }
