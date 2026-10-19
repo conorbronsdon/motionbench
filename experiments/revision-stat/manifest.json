@@ -1,0 +1,19 @@
+{
+  "id": "revision-stat",
+  "status": "experimental local pilot",
+  "duration": 6,
+  "fps": 60,
+  "counter": {"role": "value", "start": 0.5, "land": 2.5, "to": 128400, "mid": 0.6, "min_h": 120},
+  "narration": {
+    "value": "value", "target": "128,400", "cue": 2.5, "hold_to": 5.5,
+    "tolerance_frames": 2, "value_min_h": 120,
+    "copy": [
+      {"role": "qualifier", "text": "requests completed during the synthetic single-worker test run", "min_h": 40},
+      {"role": "source", "text": "Source: synthetic fixture", "min_h": 32}
+    ]
+  },
+  "formats": [
+    {"id": "landscape", "file": "index.html", "width": 1920, "height": 1080, "safe_rect": [96, 54, 1824, 1026]},
+    {"id": "portrait", "file": "portrait.html", "width": 1080, "height": 1920, "safe_rect": [54, 270, 1026, 1250]}
+  ]
+}

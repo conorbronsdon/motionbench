@@ -500,7 +500,7 @@ T.stream = (ctx, p) => {
   ];
 };
 
-T.count = (ctx, p) => {
+export const steppedCount = T.count = (ctx, p) => {
   const v = series(ctx, p.role, "text").map((s) => (s == null ? null : s.trim()));
   const o = series(ctx, p.role, "o"), w = series(ctx, p.role, "w");
   const fmt = v.every((s, i) => o[i] < 0.5 || /^\d{1,3}(,\d{3})*$/.test(s));

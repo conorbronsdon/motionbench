@@ -1,18 +1,19 @@
 // Timecoded narration fixtures test synchronization, not ASR or the truth of a claim.
 // Each role has to remain fully shown: a tagged box behind a clip is not readable.
 const textBox = (r) => r?.textBounds && {x: r.textBounds[0], y: r.textBounds[1], w: r.textBounds[2], h: r.textBounds[3]};
-const inside = (b) => b && [b.x, b.y, b.w, b.h].every(Number.isFinite) && b.w > 0 && b.h > 0 &&
-  b.x >= 96 && b.y >= 54 && b.x + b.w <= 1824 && b.y + b.h <= 1026;
-const safe = (r, minHeight) => r && r.o >= 0.98 && r.h >= minHeight && r.w > 0 &&
+const inside = (b, rect) => b && [b.x, b.y, b.w, b.h].every(Number.isFinite) && b.w > 0 && b.h > 0 &&
+  b.x >= rect[0] && b.y >= rect[1] && b.x + b.w <= rect[2] && b.y + b.h <= rect[3];
+const safe = (r, minHeight, rect) => r && r.o >= 0.98 && r.h >= minHeight && r.w > 0 &&
   [r.x, r.y, r.w, r.h, r.o].every(Number.isFinite) &&
-  r.x >= 96 && r.y >= 54 && r.x + r.w <= 1824 && r.y + r.h <= 1026 &&
-  r.vw >= r.w - 0.5 && r.vh >= r.h - 0.5 && r.textFits === true && inside(textBox(r));
+  inside(r, rect) &&
+  r.vw >= r.w - 0.5 && r.vh >= r.h - 0.5 && r.textFits === true && inside(textBox(r), rect);
 const normalized = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 const overlaps = (a, b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 0.5 &&
   Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 0.5;
 const result = (id, pass, got, want) => ({id: `narration: ${id}`, pass: !!pass, got, want});
 
 export function narratedStat(ctx, p) {
+  const rect = p.safe_rect ?? [96, 54, 1824, 1026];
   const frames = ctx.frames;
   const held = frames.filter((f) => f.t >= p.cue && f.t <= p.hold_to);
   // grade.mjs rounds sample times to four decimals.
@@ -29,14 +30,14 @@ export function narratedStat(ctx, p) {
     error, `within ${p.tolerance_frames} frames of ${p.cue}s`),
     result('final value stays readable through the hold', complete && held.every((f) => {
       const r = f.roles[p.value];
-      return safe(r, p.value_min_h) &&
+      return safe(r, p.value_min_h, rect) &&
         (landed && f.t < landed.t || normalized(r.text) === p.target);
     }), held.length, `fully shown from ${p.cue}s to ${p.hold_to}s`)];
   for (const item of p.copy) {
     out.push(result(`${item.role} stays exact and readable through the hold`,
       complete && held.every((f) => {
         const r = f.roles[item.role];
-        return safe(r, item.min_h) && normalized(r.text) === item.text;
+        return safe(r, item.min_h, rect) && normalized(r.text) === item.text;
       }), held.length, item.text));
   }
   const roles = [p.value, ...p.copy.map((item) => item.role)];
