@@ -54,8 +54,13 @@ const PAGE = () => {
   };
   const visibleText = (el) => {
     let s = "", last = null, bounds = null;
-    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
     for (let n; (n = w.nextNode()); ) {
+      // A <br> separates words on screen; without a space "the<br>next" would read "thenext".
+      if (n.nodeType === 1) {
+        if (n.tagName === "BR" && s && !/\s$/.test(s) && shown(n) >= 0.5) s += " ";
+        continue;
+      }
       const p = n.parentElement;
       if (!p || shown(p) < 0.5) continue;
       s += n.data;

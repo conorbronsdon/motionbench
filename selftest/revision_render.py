@@ -81,6 +81,37 @@ class RevisionRender(unittest.TestCase):
         check = next(c for c in result["formats"][1]["checks"] if "source stays" in c["id"])
         self.assertFalse(check["pass"])
 
+    def test_absolutely_positioned_portrait_stage_passes(self):
+        portrait = reference(True).replace("html,body{margin:0;width:1080px;height:1920px;overflow:hidden;",
+                                           "html,body{margin:0;overflow:hidden;")
+        portrait = portrait.replace("<body>", '<body><div id="stage" style="position:absolute;left:0;top:0;'
+                                    'width:1080px;height:1920px;overflow:hidden">')
+        portrait = portrait.replace("<script src", "</div><script src", 1)
+        result = grade(reference(), portrait)
+        self.assertTrue(result["pass"], result)
+
+    def test_undersized_portrait_stage_fails(self):
+        portrait = reference(True).replace("html,body{margin:0;width:1080px;height:1920px;overflow:hidden;",
+                                           "html,body{margin:0;width:1080px;height:1400px;overflow:hidden;")
+        result = grade(reference(), portrait)
+        check = next(c for c in result["formats"][1]["checks"] if "stage matches" in c["id"])
+        self.assertFalse(check["pass"])
+
+    def test_final_value_vanishing_after_the_hold_fails(self):
+        portrait = reference(True).replace("tl.set({}, {}, 6);",
+                                           "tl.set('#value',{opacity:0},5.6);tl.set({}, {}, 6);")
+        result = grade(reference(), portrait)
+        self.assertTrue(result["formats"][0]["pass"])
+        failed = [c["id"] for c in result["formats"][1]["checks"] if not c["pass"]]
+        self.assertEqual(failed, ["revision: final value stays visible to the end of the timeline"])
+
+    def test_line_break_reflow_reads_as_a_space(self):
+        qualifier = "requests completed during the synthetic single-worker test run"
+        for wrapped in ["requests completed during the<br>synthetic single-worker test run",
+                        "requests completed during the <br>synthetic single-worker test run"]:
+            result = grade(reference(), reference(True).replace(qualifier, wrapped))
+            self.assertTrue(result["pass"], (wrapped, result))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

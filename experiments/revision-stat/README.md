@@ -1,12 +1,13 @@
 # Experimental revision robustness task
 
 Status: an experimental follow-up motivated by local production-pilot failures.
-This follow-up depends on the opt-in narrated-stat contribution. It is outside
+This follow-up depends on the opt-in narrated-stat contribution, which is merged
+upstream (Coral-Bricks-AI/motionbench#1). It is outside
 `tasks/`, so standard task discovery and published leaderboard results do not
 include it. The normal agent runner does not yet support this two-output task.
 The prototype was built on that contribution's head
-`0cce44f4a01bdbd892f8f84495935c032585da38`; submit it as a dependent change until
-the shared narration helper is available upstream.
+`0cce44f4a01bdbd892f8f84495935c032585da38`, whose tree matches the upstream merge
+commit `141bfaa`.
 
 The test starts with an approved synthetic statistic. An editor changes
 the number and qualifier, then asks for landscape and portrait outputs. Each
@@ -78,5 +79,7 @@ The browser controls cover both-format success, a landscape layout reused as
 portrait, a retimed cue with lost qualification, and clipping of the longer
 qualifier. They also reproduce attribution below the portrait safe area and a
 source that only begins fading in on the cue. Numeric controls add stale content, missing formats, duplicate roles,
-changed duration, and failures on a single frame. These controls make no model
-calls.
+changed duration, and failures on a single frame. The final number must also stay
+fully shown from the cue to the last sample, past the 5.50-second end of the narration
+helper's hold; the stage may be an absolutely positioned element rather than `body`; and
+a `<br>` between words reads as a space. These controls make no model calls.

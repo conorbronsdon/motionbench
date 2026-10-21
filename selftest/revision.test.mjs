@@ -46,6 +46,13 @@ for (const [name, mutate, check] of [
   ['counter moves backwards', (c) => c.frames[90].roles.value.text = '0', 'never goes backwards'],
   ['duration changed', (c) => c.duration = 6.2, 'duration preserved'],
   ['duplicate role', (c) => c.frames[180].roles.value.dup = 2, 'roles are unique'],
+  ['final value hidden after the hold', (c) => c.frames.forEach((f, i) => { if (i > 330) f.roles.value.o = 0; }),
+    'to the end of the timeline'],
+  ['final value changed after the hold', (c) => c.frames[350].roles.value.text = '128,399',
+    'to the end of the timeline'],
+  ['final value clipped on the last frame', (c) => c.frames.at(-1).roles.value.vw = 0,
+    'to the end of the timeline'],
+  ['samples end before the timeline does', (c) => c.frames.splice(345), 'to the end of the timeline'],
   ['missing role before the hold', (c) => delete c.frames[20].roles.source, 'roles are unique'],
 ]) test(name, () => {
   const ctx = fixture(); mutate(ctx.portrait);

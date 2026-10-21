@@ -24,12 +24,19 @@ export async function evaluate(workspace) {
         contexts[format.id] = {fps: manifest.fps, frames: [], errors: [probe.error], network: []};
         continue;
       }
-      const stage = await probe.page.evaluate(() => {
-        const b = document.body.getBoundingClientRect();
-        return {width: b.width, height: b.height,
+      // The contract asks for a stage of the exact size, not a body of that size: an absolutely
+      // positioned stage leaves the body with no height. Report whichever of the body and its
+      // direct element children is closest to the requested size; scroll extents still catch overflow.
+      const stage = await probe.page.evaluate(([w, h]) => {
+        const boxes = [document.body, ...document.body.children]
+          .filter((el) => !['SCRIPT', 'STYLE', 'LINK', 'TEMPLATE'].includes(el.tagName))
+          .map((el) => el.getBoundingClientRect());
+        const off = (b) => Math.abs(b.width - w) + Math.abs(b.height - h);
+        const best = boxes.reduce((a, b) => (off(b) < off(a) ? b : a));
+        return {width: best.width, height: best.height,
           scrollWidth: document.documentElement.scrollWidth,
           scrollHeight: document.documentElement.scrollHeight};
-      });
+      }, [format.width, format.height]);
       const frames = [];
       for (let i = 0; i <= manifest.duration * manifest.fps; i++) {
         const t = Math.round(i / manifest.fps * 10000) / 10000;

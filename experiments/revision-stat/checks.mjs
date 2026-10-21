@@ -1,6 +1,27 @@
 import { narratedStat } from '../../grader/narration.mjs';
 import { steppedCount } from '../../grader/checks.mjs';
 
+const norm = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
+
+// The narration helper stops at hold_to (5.5 s). The brief keeps the final number to the
+// end of the timeline, so check the exact value is fully shown on every sampled frame from
+// the cue to the last one.
+function finalValueToEnd(ctx, manifest) {
+  const {value, target, cue} = manifest.narration;
+  const tail = ctx.frames.filter((f) => f.t >= cue - 1e-4);
+  const complete = tail.length > 0 && Math.abs(tail[0].t - cue) <= 1e-4 &&
+    Math.abs(tail.at(-1).t - manifest.duration) <= 1e-4 &&
+    tail.every((f, i) => !i || f.t > tail[i - 1].t && f.t - tail[i - 1].t <= 1 / ctx.fps + 1e-4);
+  const shown = (f) => {
+    const r = f.roles[value];
+    return r && r.o >= 0.98 && r.w > 0 && r.h > 0 && r.vw >= r.w - 0.5 && r.vh >= r.h - 0.5 &&
+      norm(r.text) === target;
+  };
+  return {id: 'revision: final value stays visible to the end of the timeline',
+    pass: complete && tail.every(shown), got: tail.length,
+    want: `${target} fully shown from ${cue}s to ${manifest.duration}s`};
+}
+
 // Each required format is a separate obligation. Never average a failure away.
 export function revisionChecks(contexts, manifest) {
   return manifest.formats.map((format) => {
@@ -14,6 +35,7 @@ export function revisionChecks(contexts, manifest) {
         Math.abs(ctx.stage.height - format.height) <= 0.5 &&
         ctx.stage.scrollWidth <= format.width && ctx.stage.scrollHeight <= format.height,
       got: ctx.stage, want: [format.width, format.height]});
+    checks.push(finalValueToEnd(ctx, manifest));
     checks.push({id: 'revision: timeline duration preserved',
       pass: Number.isFinite(ctx.duration) && Math.abs(ctx.duration - manifest.duration) < 1e-4,
       got: ctx.duration, want: manifest.duration});
