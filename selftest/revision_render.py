@@ -50,6 +50,12 @@ def nested_stage(height=1920, *, unrelated_full_frame=False):
 
 
 class RevisionRender(unittest.TestCase):
+    def test_explicitly_sized_html_stage_passes(self):
+        portrait = reference(True).replace("html,body{margin:0;width:1080px;height:1920px;overflow:hidden;",
+            "html{width:1080px;height:1920px}body{margin:0;overflow:hidden;")
+        result = grade(reference(), portrait)
+        self.assertTrue(result["pass"], result)
+
     def test_animated_non_role_overflow_fails(self):
         portrait = reference(True).replace("overflow:hidden;", "overflow:visible;")
         portrait = portrait.replace("<script src", '<div id="decoration" style="position:absolute;left:0;top:0;width:40px;height:40px"></div><script src', 1)

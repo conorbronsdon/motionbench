@@ -29,7 +29,7 @@ export async function evaluate(workspace) {
       const stage = await probe.page.evaluate(([w, h, names]) => {
         const roles = [...document.querySelectorAll('[data-role]')]
           .filter((el) => names.includes(el.getAttribute('data-role')));
-        const candidates = [document.body];
+        const candidates = [document.documentElement, document.body];
         for (let el = roles[0]; el && el !== document.body; el = el.parentElement) {
           if (roles.every((role) => el.contains(role))) candidates.push(el);
         }
