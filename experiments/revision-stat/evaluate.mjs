@@ -45,6 +45,11 @@ export async function evaluate(workspace) {
       for (let i = 0; i <= manifest.duration * manifest.fps; i++) {
         const t = Math.round(i / manifest.fps * 10000) / 10000;
         frames.push({t, roles: await probe.roles(Math.min(i / manifest.fps, manifest.duration - 1e-6))});
+        // Timeline seeks can move untagged decoration outside the frame too.
+        const scroll = await probe.page.evaluate(() => ({width: document.documentElement.scrollWidth,
+          height: document.documentElement.scrollHeight}));
+        stage.scrollWidth = Math.max(stage.scrollWidth, scroll.width);
+        stage.scrollHeight = Math.max(stage.scrollHeight, scroll.height);
       }
       await probe.close();
       contexts[format.id] = {fps: manifest.fps, frames, stage, duration: probe.duration,

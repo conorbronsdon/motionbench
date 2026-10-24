@@ -50,6 +50,15 @@ def nested_stage(height=1920, *, unrelated_full_frame=False):
 
 
 class RevisionRender(unittest.TestCase):
+    def test_animated_non_role_overflow_fails(self):
+        portrait = reference(True).replace("overflow:hidden;", "overflow:visible;")
+        portrait = portrait.replace("<script src", '<div id="decoration" style="position:absolute;left:0;top:0;width:40px;height:40px"></div><script src', 1)
+        portrait = portrait.replace("tl.set({}, {}, 6);", "tl.set('#decoration',{x:1200},3);tl.set({}, {}, 6);")
+        result = grade(reference(), portrait)
+        check = next(c for c in result["formats"][1]["checks"] if "stage matches" in c["id"])
+        self.assertFalse(check["pass"])
+        self.assertGreater(check["got"]["scrollWidth"], 1080)
+
     def test_nested_absolutely_positioned_portrait_stage_passes(self):
         result = grade(reference(), nested_stage())
         self.assertTrue(result["pass"], result)
