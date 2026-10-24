@@ -24,19 +24,23 @@ export async function evaluate(workspace) {
         contexts[format.id] = {fps: manifest.fps, frames: [], errors: [probe.error], network: []};
         continue;
       }
-      // The contract asks for a stage of the exact size, not a body of that size: an absolutely
-      // positioned stage leaves the body with no height. Report whichever of the body and its
-      // direct element children is closest to the requested size; scroll extents still catch overflow.
-      const stage = await probe.page.evaluate(([w, h]) => {
-        const boxes = [document.body, ...document.body.children]
-          .filter((el) => !['SCRIPT', 'STYLE', 'LINK', 'TEMPLATE'].includes(el.tagName))
-          .map((el) => el.getBoundingClientRect());
+      // An absolute stage can be nested under neutral wrappers. Measure its actual box, and
+      // require it to contain the claim roles so an unrelated full-frame decoration cannot stand in.
+      const stage = await probe.page.evaluate(([w, h, names]) => {
+        const roles = [...document.querySelectorAll('[data-role]')]
+          .filter((el) => names.includes(el.getAttribute('data-role')));
+        const candidates = [document.body];
+        for (let el = roles[0]; el && el !== document.body; el = el.parentElement) {
+          if (roles.every((role) => el.contains(role))) candidates.push(el);
+        }
+        const boxes = candidates.map((el) => el.getBoundingClientRect());
         const off = (b) => Math.abs(b.width - w) + Math.abs(b.height - h);
         const best = boxes.reduce((a, b) => (off(b) < off(a) ? b : a));
         return {width: best.width, height: best.height,
           scrollWidth: document.documentElement.scrollWidth,
           scrollHeight: document.documentElement.scrollHeight};
-      }, [format.width, format.height]);
+      }, [format.width, format.height,
+        [manifest.narration.value, ...manifest.narration.copy.map((item) => item.role)]]);
       const frames = [];
       for (let i = 0; i <= manifest.duration * manifest.fps; i++) {
         const t = Math.round(i / manifest.fps * 10000) / 10000;

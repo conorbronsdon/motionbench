@@ -39,7 +39,31 @@ def grade(landscape, portrait):
         return json.loads(result.read_text(encoding="utf-8"))
 
 
+def nested_stage(height=1920, *, unrelated_full_frame=False):
+    html = reference(True).replace("html,body{margin:0;width:1080px;height:1920px;overflow:hidden;",
+                                   "html,body{margin:0;overflow:hidden;")
+    html = html.replace("<body>", '<body><div id="wrapper"><div id="stage" style="position:absolute;left:0;top:0;'
+                        f'width:1080px;height:{height}px;overflow:hidden">')
+    extra = ('<div style="position:fixed;left:0;top:0;width:1080px;height:1920px"></div>'
+             if unrelated_full_frame else '')
+    return html.replace("<script src", "</div></div>" + extra + "<script src", 1)
+
+
 class RevisionRender(unittest.TestCase):
+    def test_nested_absolutely_positioned_portrait_stage_passes(self):
+        result = grade(reference(), nested_stage())
+        self.assertTrue(result["pass"], result)
+
+    def test_nested_undersized_portrait_stage_fails(self):
+        result = grade(reference(), nested_stage(1400))
+        check = next(c for c in result["formats"][1]["checks"] if "stage matches" in c["id"])
+        self.assertFalse(check["pass"])
+
+    def test_unrelated_full_frame_does_not_hide_an_undersized_stage(self):
+        result = grade(reference(), nested_stage(1400, unrelated_full_frame=True))
+        check = next(c for c in result["formats"][1]["checks"] if "stage matches" in c["id"])
+        self.assertFalse(check["pass"])
+
     def test_reference_both_formats(self):
         result = grade(reference(), reference(True))
         self.assertTrue(result["pass"], result)
