@@ -54,8 +54,13 @@ const PAGE = () => {
   };
   const visibleText = (el) => {
     let s = "", last = null, bounds = null;
-    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
     for (let n; (n = w.nextNode()); ) {
+      // A <br> separates words on screen; without a space "the<br>next" would read "thenext".
+      if (n.nodeType === 1) {
+        if (n.tagName === "BR" && s && !/\s$/.test(s) && shown(n) >= 0.5) s += " ";
+        continue;
+      }
       const p = n.parentElement;
       if (!p || shown(p) < 0.5) continue;
       s += n.data;
@@ -215,12 +220,12 @@ const PAGE = () => {
   };
 };
 
-export async function open(dir, { headless = true } = {}) {
+export async function open(dir, { headless = true, viewport = { width: W, height: H } } = {}) {
   const root = path.resolve(dir);
   // Grayscale text antialiasing and sRGB everywhere: Chrome switches LCD antialiasing on and off with
   // compositor layers, which would make the same frame differ by seek history.
   const browser = await chromium.launch({ headless, args: ["--disable-lcd-text", "--force-color-profile=srgb"] });
-  const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
+  const page = await browser.newPage({ viewport, deviceScaleFactor: 1 });
   const log = { errors: [], network: [] };
   page.on("console", (m) => { if (m.type() === "error") log.errors.push(m.text().slice(0, 300)); });
   page.on("pageerror", (e) => log.errors.push(String(e).slice(0, 300)));
