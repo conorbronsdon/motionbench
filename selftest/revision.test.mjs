@@ -24,6 +24,15 @@ function fixture() {
 }
 const passes = (ctx) => revisionChecks(ctx, manifest).every((f) => f.pass);
 test('both formats satisfy every revision obligation', () => assert.equal(passes(fixture()), true));
+test('copy can enter before the cue and leave after the reading window', () => {
+  const ctx = fixture();
+  for (const format of Object.values(ctx)) for (const frame of format.frames) {
+    if (frame.t < 2 || frame.t > 5.5) {
+      delete frame.roles.qualifier; delete frame.roles.source;
+    }
+  }
+  assert.equal(passes(ctx), true);
+});
 test('landscape success never compensates for a missing portrait', () => {
   const ctx = fixture(); delete ctx.portrait;
   const result = revisionChecks(ctx, manifest);
@@ -53,7 +62,12 @@ for (const [name, mutate, check] of [
   ['final value clipped on the last frame', (c) => c.frames.at(-1).roles.value.vw = 0,
     'to the end of the timeline'],
   ['samples end before the timeline does', (c) => c.frames.splice(345), 'to the end of the timeline'],
-  ['missing role before the hold', (c) => delete c.frames[20].roles.source, 'roles are unique'],
+  ['source missing during the hold', (c) => delete c.frames[180].roles.source, 'source stays'],
+  ['qualifier missing during the hold', (c) => delete c.frames[180].roles.qualifier, 'qualifier stays'],
+  ['source never appears', (c) => c.frames.forEach((f) => delete f.roles.source), 'roles are unique'],
+  ['duplicate source before the hold', (c) => c.frames[20].roles.source.dup = 2, 'roles are unique'],
+  ['duplicate qualifier after the hold', (c) => c.frames[350].roles.qualifier.dup = 2, 'roles are unique'],
+  ['counter missing at its start check', (c) => delete c.frames[36].roles.value, 'starts at'],
 ]) test(name, () => {
   const ctx = fixture(); mutate(ctx.portrait);
   const result = revisionChecks(ctx, manifest);

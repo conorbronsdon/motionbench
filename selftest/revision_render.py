@@ -49,7 +49,46 @@ def nested_stage(height=1920, *, unrelated_full_frame=False):
     return html.replace("<script src", "</div></div>" + extra + "<script src", 1)
 
 
+def timed_copy(*, missing_during_hold=False, duplicate_before_hold=False):
+    html = reference(True)
+    script = """
+const copyNodes=[...document.querySelectorAll('[data-role=qualifier],[data-role=source]')]
+ .map(el=>({el,parent:el.parentElement}));
+const duplicate=copyNodes[1].el.cloneNode(true);
+const clock={t:0};
+function renderCopy(t){
+ const present=t>=(DUPLICATE?1:2) && t<=5.5 && !(MISSING && t>=3 && t<3.1);
+ for(const {el,parent} of copyNodes){
+  if(present && !el.isConnected)parent.appendChild(el);
+  if(!present && el.isConnected)el.remove();
+ }
+ const doubled=DUPLICATE && t>=1 && t<1.1;
+ if(doubled && !duplicate.isConnected)copyNodes[1].parent.appendChild(duplicate);
+ if(!doubled && duplicate.isConnected)duplicate.remove();
+}
+tl.to(clock,{t:6,duration:6,ease:'none',onUpdate:()=>renderCopy(clock.t)},0);
+renderCopy(0);
+""".replace("MISSING", str(missing_during_hold).lower()).replace(
+        "DUPLICATE", str(duplicate_before_hold).lower())
+    return html.replace("tl.set({}, {}, 6);", script + "\ntl.set({}, {}, 6);")
+
+
 class RevisionRender(unittest.TestCase):
+    def test_copy_can_enter_before_cue_and_leave_after_reading_window(self):
+        result = grade(reference(), timed_copy())
+        self.assertTrue(result["pass"], result)
+
+    def test_timed_copy_missing_during_hold_fails(self):
+        result = grade(reference(), timed_copy(missing_during_hold=True))
+        failed = [c["id"] for c in result["formats"][1]["checks"] if not c["pass"]]
+        self.assertIn("narration: source stays exact and readable through the hold", failed)
+        self.assertIn("narration: qualifier stays exact and readable through the hold", failed)
+
+    def test_duplicate_copy_before_reading_window_fails(self):
+        result = grade(reference(), timed_copy(duplicate_before_hold=True))
+        failed = [c["id"] for c in result["formats"][1]["checks"] if not c["pass"]]
+        self.assertEqual(failed, ["revision: required roles are unique"])
+
     def test_explicitly_sized_html_stage_passes(self):
         portrait = reference(True).replace("html,body{margin:0;width:1080px;height:1920px;overflow:hidden;",
             "html{width:1080px;height:1920px}body{margin:0;overflow:hidden;")
